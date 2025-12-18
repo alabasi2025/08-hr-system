@@ -1,14 +1,467 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma Schema for HR System
+// نظام الموارد البشرية - قاعدة البيانات
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== الأقسام (Departments) ====================
+model hr_departments {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(20)
+  name        String   @db.VarChar(100)
+  name_ar     String?  @db.VarChar(100)
+  
+  parent_id   String?  @db.Uuid
+  manager_id  String?  @db.Uuid
+  
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  // العلاقات
+  parent      hr_departments?  @relation("DepartmentHierarchy", fields: [parent_id], references: [id])
+  children    hr_departments[] @relation("DepartmentHierarchy")
+  employees   hr_employees[]
+  positions   hr_positions[]
+  
+  @@map("hr_departments")
+}
+
+// ==================== المسميات الوظيفية (Positions) ====================
+model hr_positions {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique @db.VarChar(20)
+  title           String   @db.VarChar(100)
+  title_ar        String?  @db.VarChar(100)
+  
+  department_id   String?  @db.Uuid
+  grade_id        String?  @db.Uuid
+  level           Int?
+  
+  description     String?  @db.Text
+  responsibilities String? @db.Text
+  requirements    String?  @db.Text
+  
+  headcount       Int      @default(1)
+  current_count   Int      @default(0)
+  
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  // العلاقات
+  department      hr_departments?    @relation(fields: [department_id], references: [id])
+  grade           hr_salary_grades?  @relation(fields: [grade_id], references: [id])
+  employees       hr_employees[]
+  
+  @@map("hr_positions")
+}
+
+// ==================== سلم الرواتب (Salary Grades) ====================
+model hr_salary_grades {
+  id                    String   @id @default(uuid()) @db.Uuid
+  code                  String   @unique @db.VarChar(20)
+  name                  String   @db.VarChar(100)
+  name_ar               String?  @db.VarChar(100)
+  
+  min_salary            Decimal  @db.Decimal(15, 2)
+  max_salary            Decimal  @db.Decimal(15, 2)
+  
+  housing_allowance_pct Decimal  @default(0) @db.Decimal(5, 2)
+  transport_allowance   Decimal  @default(0) @db.Decimal(15, 2)
+  
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  // العلاقات
+  positions             hr_positions[]
+  salary_details        hr_salary_details[]
+  
+  @@map("hr_salary_grades")
+}
+
+// ==================== الموظفين (Employees) ====================
+model hr_employees {
+  id                        String    @id @default(uuid()) @db.Uuid
+  employee_number           String    @unique @db.VarChar(20)
+  
+  // البيانات الشخصية
+  first_name                String    @db.VarChar(100)
+  middle_name               String?   @db.VarChar(100)
+  last_name                 String    @db.VarChar(100)
+  full_name_ar              String?   @db.VarChar(200)
+  full_name_en              String?   @db.VarChar(200)
+  
+  // الهوية
+  id_type                   String?   @db.VarChar(50)
+  id_number                 String    @db.VarChar(50)
+  id_expiry_date            DateTime?
+  
+  nationality               String?   @db.VarChar(50)
+  gender                    String?   @db.VarChar(10)
+  date_of_birth             DateTime?
+  place_of_birth            String?   @db.VarChar(100)
+  marital_status            String?   @db.VarChar(20)
+  
+  // معلومات الاتصال
+  phone                     String?   @db.VarChar(20)
+  mobile                    String    @db.VarChar(20)
+  email                     String?   @unique @db.VarChar(100)
+  personal_email            String?   @db.VarChar(100)
+  
+  // العنوان
+  address                   String?   @db.Text
+  city                      String?   @db.VarChar(100)
+  district                  String?   @db.VarChar(100)
+  
+  // جهة الاتصال في الطوارئ
+  emergency_contact_name    String?   @db.VarChar(100)
+  emergency_contact_phone   String?   @db.VarChar(20)
+  emergency_contact_relation String?  @db.VarChar(50)
+  
+  // الصورة
+  photo_path                String?   @db.VarChar(500)
+  
+  // الحالة
+  status                    String    @default("active") @db.VarChar(20)
+  
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+  
+  // العلاقات مع بيانات التوظيف
+  department_id             String?   @db.Uuid
+  position_id               String?   @db.Uuid
+  manager_id                String?   @db.Uuid
+  
+  department                hr_departments? @relation(fields: [department_id], references: [id])
+  position                  hr_positions?   @relation(fields: [position_id], references: [id])
+  manager                   hr_employees?   @relation("EmployeeManager", fields: [manager_id], references: [id])
+  subordinates              hr_employees[]  @relation("EmployeeManager")
+  
+  // بيانات التوظيف
+  employment_details        hr_employment_details?
+  salary_details            hr_salary_details?
+  
+  // الإجازات
+  leave_balances            hr_employee_leave_balances[]
+  leave_requests            hr_leave_requests[]
+  
+  // الحضور
+  attendance_records        hr_attendance_records[]
+  
+  // السلف والقروض
+  loans                     hr_employee_loans[]
+  
+  // الرواتب
+  payroll_details           hr_payroll_details[]
+  
+  @@map("hr_employees")
+}
+
+// ==================== بيانات التوظيف (Employment Details) ====================
+model hr_employment_details {
+  id                    String    @id @default(uuid()) @db.Uuid
+  employee_id           String    @unique @db.Uuid
+  
+  hire_date             DateTime
+  probation_end_date    DateTime?
+  contract_type         String?   @db.VarChar(50)
+  contract_start_date   DateTime?
+  contract_end_date     DateTime?
+  
+  job_title             String    @db.VarChar(100)
+  job_title_ar          String?   @db.VarChar(100)
+  
+  is_manager            Boolean   @default(false)
+  
+  work_location         String?   @db.VarChar(100)
+  station_id            String?   @db.Uuid
+  
+  work_schedule         String?   @db.VarChar(50)
+  working_hours_per_week Decimal? @default(40) @db.Decimal(5, 2)
+  
+  employment_status     String    @default("active") @db.VarChar(20)
+  termination_date      DateTime?
+  termination_reason    String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  employee              hr_employees @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  
+  @@map("hr_employment_details")
+}
+
+// ==================== بيانات الراتب (Salary Details) ====================
+model hr_salary_details {
+  id                    String    @id @default(uuid()) @db.Uuid
+  employee_id           String    @unique @db.Uuid
+  grade_id              String?   @db.Uuid
+  
+  basic_salary          Decimal   @db.Decimal(15, 2)
+  currency              String    @default("YER") @db.VarChar(10)
+  
+  housing_allowance     Decimal   @default(0) @db.Decimal(15, 2)
+  transport_allowance   Decimal   @default(0) @db.Decimal(15, 2)
+  food_allowance        Decimal   @default(0) @db.Decimal(15, 2)
+  phone_allowance       Decimal   @default(0) @db.Decimal(15, 2)
+  other_allowances      Decimal   @default(0) @db.Decimal(15, 2)
+  
+  social_insurance      Decimal   @default(0) @db.Decimal(15, 2)
+  tax_deduction         Decimal   @default(0) @db.Decimal(15, 2)
+  
+  payment_method        String?   @db.VarChar(50)
+  bank_name             String?   @db.VarChar(100)
+  bank_account          String?   @db.VarChar(50)
+  iban                  String?   @db.VarChar(50)
+  
+  effective_from        DateTime
+  effective_to          DateTime?
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  employee              hr_employees      @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  grade                 hr_salary_grades? @relation(fields: [grade_id], references: [id])
+  
+  @@map("hr_salary_details")
+}
+
+// ==================== أنواع الإجازات (Leave Types) ====================
+model hr_leave_types {
+  id                    String   @id @default(uuid()) @db.Uuid
+  code                  String   @unique @db.VarChar(20)
+  name                  String   @db.VarChar(100)
+  name_ar               String?  @db.VarChar(100)
+  
+  annual_balance        Int?
+  
+  is_paid               Boolean  @default(true)
+  requires_approval     Boolean  @default(true)
+  requires_attachment   Boolean  @default(false)
+  can_carry_forward     Boolean  @default(false)
+  max_carry_forward     Int      @default(0)
+  
+  min_days              Int      @default(1)
+  max_days              Int?
+  
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  leave_balances        hr_employee_leave_balances[]
+  leave_requests        hr_leave_requests[]
+  
+  @@map("hr_leave_types")
+}
+
+// ==================== أرصدة إجازات الموظفين ====================
+model hr_employee_leave_balances {
+  id                    String   @id @default(uuid()) @db.Uuid
+  employee_id           String   @db.Uuid
+  leave_type_id         String   @db.Uuid
+  year                  Int
+  
+  opening_balance       Decimal  @default(0) @db.Decimal(10, 2)
+  accrued               Decimal  @default(0) @db.Decimal(10, 2)
+  used                  Decimal  @default(0) @db.Decimal(10, 2)
+  pending               Decimal  @default(0) @db.Decimal(10, 2)
+  remaining             Decimal  @default(0) @db.Decimal(10, 2)
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  employee              hr_employees   @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  leave_type            hr_leave_types @relation(fields: [leave_type_id], references: [id])
+  
+  @@unique([employee_id, leave_type_id, year])
+  @@map("hr_employee_leave_balances")
+}
+
+// ==================== طلبات الإجازة ====================
+model hr_leave_requests {
+  id                    String    @id @default(uuid()) @db.Uuid
+  request_number        String    @unique @db.VarChar(50)
+  employee_id           String    @db.Uuid
+  leave_type_id         String    @db.Uuid
+  
+  start_date            DateTime
+  end_date              DateTime
+  days_count            Decimal   @db.Decimal(10, 2)
+  
+  reason                String?   @db.Text
+  attachment_path       String?   @db.VarChar(500)
+  
+  status                String    @default("pending") @db.VarChar(20)
+  
+  approved_by           String?   @db.Uuid
+  approved_at           DateTime?
+  rejection_reason      String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  employee              hr_employees   @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  leave_type            hr_leave_types @relation(fields: [leave_type_id], references: [id])
+  
+  @@map("hr_leave_requests")
+}
+
+// ==================== سجلات الحضور ====================
+model hr_attendance_records {
+  id                    String    @id @default(uuid()) @db.Uuid
+  employee_id           String    @db.Uuid
+  date                  DateTime  @db.Date
+  
+  check_in              DateTime?
+  check_out             DateTime?
+  
+  working_hours         Decimal?  @db.Decimal(5, 2)
+  overtime_hours        Decimal?  @default(0) @db.Decimal(5, 2)
+  
+  status                String    @default("present") @db.VarChar(20)
+  
+  late_minutes          Int       @default(0)
+  early_leave_minutes   Int       @default(0)
+  
+  source                String?   @db.VarChar(50)
+  device_id             String?   @db.VarChar(50)
+  
+  notes                 String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  employee              hr_employees @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  
+  @@unique([employee_id, date])
+  @@map("hr_attendance_records")
+}
+
+// ==================== السلف والقروض ====================
+model hr_employee_loans {
+  id                    String    @id @default(uuid()) @db.Uuid
+  loan_number           String    @unique @db.VarChar(50)
+  employee_id           String    @db.Uuid
+  
+  loan_type             String    @db.VarChar(50)
+  
+  amount                Decimal   @db.Decimal(15, 2)
+  interest_rate         Decimal   @default(0) @db.Decimal(5, 2)
+  total_amount          Decimal   @db.Decimal(15, 2)
+  
+  installment_amount    Decimal   @db.Decimal(15, 2)
+  number_of_installments Int
+  paid_amount           Decimal   @default(0) @db.Decimal(15, 2)
+  remaining_amount      Decimal   @db.Decimal(15, 2)
+  
+  start_date            DateTime
+  end_date              DateTime?
+  
+  status                String    @default("pending") @db.VarChar(20)
+  
+  approved_by           String?   @db.Uuid
+  approved_at           DateTime?
+  
+  notes                 String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  employee              hr_employees @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  
+  @@map("hr_employee_loans")
+}
+
+// ==================== مسيرات الرواتب ====================
+model hr_payroll_runs {
+  id                    String    @id @default(uuid()) @db.Uuid
+  payroll_number        String    @unique @db.VarChar(50)
+  
+  period_year           Int
+  period_month          Int
+  
+  start_date            DateTime
+  end_date              DateTime
+  payment_date          DateTime?
+  
+  total_employees       Int       @default(0)
+  total_gross           Decimal   @default(0) @db.Decimal(15, 2)
+  total_deductions      Decimal   @default(0) @db.Decimal(15, 2)
+  total_net             Decimal   @default(0) @db.Decimal(15, 2)
+  
+  status                String    @default("draft") @db.VarChar(20)
+  
+  calculated_at         DateTime?
+  calculated_by         String?   @db.Uuid
+  approved_at           DateTime?
+  approved_by           String?   @db.Uuid
+  paid_at               DateTime?
+  
+  notes                 String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  details               hr_payroll_details[]
+  
+  @@unique([period_year, period_month])
+  @@map("hr_payroll_runs")
+}
+
+// ==================== تفاصيل الرواتب ====================
+model hr_payroll_details {
+  id                    String    @id @default(uuid()) @db.Uuid
+  payroll_id            String    @db.Uuid
+  employee_id           String    @db.Uuid
+  
+  working_days          Int       @default(30)
+  actual_days           Int       @default(30)
+  absent_days           Int       @default(0)
+  
+  basic_salary          Decimal   @db.Decimal(15, 2)
+  
+  housing_allowance     Decimal   @default(0) @db.Decimal(15, 2)
+  transport_allowance   Decimal   @default(0) @db.Decimal(15, 2)
+  food_allowance        Decimal   @default(0) @db.Decimal(15, 2)
+  other_allowances      Decimal   @default(0) @db.Decimal(15, 2)
+  
+  overtime_hours        Decimal   @default(0) @db.Decimal(10, 2)
+  overtime_amount       Decimal   @default(0) @db.Decimal(15, 2)
+  bonus                 Decimal   @default(0) @db.Decimal(15, 2)
+  commission            Decimal   @default(0) @db.Decimal(15, 2)
+  
+  total_earnings        Decimal   @db.Decimal(15, 2)
+  
+  absence_deduction     Decimal   @default(0) @db.Decimal(15, 2)
+  late_deduction        Decimal   @default(0) @db.Decimal(15, 2)
+  loan_deduction        Decimal   @default(0) @db.Decimal(15, 2)
+  advance_deduction     Decimal   @default(0) @db.Decimal(15, 2)
+  social_insurance      Decimal   @default(0) @db.Decimal(15, 2)
+  tax_deduction         Decimal   @default(0) @db.Decimal(15, 2)
+  other_deductions      Decimal   @default(0) @db.Decimal(15, 2)
+  
+  total_deductions      Decimal   @db.Decimal(15, 2)
+  
+  net_salary            Decimal   @db.Decimal(15, 2)
+  
+  status                String    @default("pending") @db.VarChar(20)
+  
+  notes                 String?   @db.Text
+  
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  
+  payroll               hr_payroll_runs @relation(fields: [payroll_id], references: [id], onDelete: Cascade)
+  employee              hr_employees    @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  
+  @@unique([payroll_id, employee_id])
+  @@map("hr_payroll_details")
 }
