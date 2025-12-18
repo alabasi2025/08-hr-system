@@ -6,6 +6,8 @@ import { EmployeesModule } from '../modules/employees/employees.module';
 import { DepartmentsModule } from '../modules/departments/departments.module';
 import { PositionsModule } from '../modules/positions/positions.module';
 import { SalaryGradesModule } from '../modules/salary-grades/salary-grades.module';
+import { PayrollModule } from '../modules/payroll/payroll.module';
+import { LoansModule } from '../modules/loans/loans.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { SalaryGradesModule } from '../modules/salary-grades/salary-grades.modul
     DepartmentsModule,
     PositionsModule,
     SalaryGradesModule,
+    PayrollModule,
+    LoansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

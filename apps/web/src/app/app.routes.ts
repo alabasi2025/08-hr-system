@@ -72,6 +72,20 @@ export const appRoutes: Route[] = [
             (m) => m.SalaryGradesComponent
           ),
       },
+      {
+        path: 'payroll',
+        loadComponent: () =>
+          import('./components/payroll/payroll.component').then(
+            (m) => m.PayrollComponent
+          ),
+      },
+      {
+        path: 'loans',
+        loadComponent: () =>
+          import('./components/loans/loans.component').then(
+            (m) => m.LoansComponent
+          ),
+      },
     ],
   },
   {

@@ -152,4 +152,85 @@ export class ApiService {
   updateEmployeeSalary(employeeId: string, data: Partial<CreateSalaryDetailsDto>): Observable<SalaryDetails> {
     return this.http.patch<SalaryDetails>(`${this.baseUrl}/employees/${employeeId}/salary`, data);
   }
+
+  // ==================== Payroll ====================
+  getPayrolls(year?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (year) {
+      params = params.set('year', year.toString());
+    }
+    return this.http.get<any[]>(`${this.baseUrl}/payroll`, { params });
+  }
+
+  getPayroll(id: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/payroll/${id}`);
+  }
+
+  getPayrollStats(year?: number): Observable<any> {
+    let params = new HttpParams();
+    if (year) {
+      params = params.set('year', year.toString());
+    }
+    return this.http.get<any>(`${this.baseUrl}/payroll/stats`, { params });
+  }
+
+  createPayroll(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/payroll`, data);
+  }
+
+  calculatePayroll(id: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/payroll/${id}/calculate`, {});
+  }
+
+  approvePayroll(id: string, notes?: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/payroll/${id}/approve`, { notes });
+  }
+
+  markPayrollAsPaid(id: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/payroll/${id}/pay`, {});
+  }
+
+  deletePayroll(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/payroll/${id}`);
+  }
+
+  // ==================== Loans ====================
+  getLoans(status?: string, employeeId?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (status) {
+      params = params.set('status', status);
+    }
+    if (employeeId) {
+      params = params.set('employee_id', employeeId);
+    }
+    return this.http.get<any[]>(`${this.baseUrl}/loans`, { params });
+  }
+
+  getLoan(id: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/loans/${id}`);
+  }
+
+  getLoanStats(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/loans/stats`);
+  }
+
+  getEmployeeLoans(employeeId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/loans/employee/${employeeId}`);
+  }
+
+  createLoan(data: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/loans`, data);
+  }
+
+  approveLoan(id: string, notes?: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/loans/${id}/approve`, { notes });
+  }
+
+  rejectLoan(id: string, reason?: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/loans/${id}/reject`, { reason });
+  }
+
+  deleteLoan(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/loans/${id}`);
+  }
 }
